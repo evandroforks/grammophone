@@ -53,7 +53,7 @@ function expandSentenceNode(node, grammar) {
 
 }
 
-const MAX_SENTENCES = 30;
+const MAX_SENTENCES = 300;
 
 module.exports["grammar.sentences"] = function(grammar) {
 
