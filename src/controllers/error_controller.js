@@ -15,7 +15,7 @@ class ErrorController {
     let error = this._delegate.getError();
 
     if (typeof error !== "undefined") {
-      this._element.innerHTML = "<pre>" + this._delegate.getError() + "</pre>";
+      this._element.innerHTML = "<pre>" + error.message + "</pre>";
     } else {
       this._element.innerHTML = "";
     }
