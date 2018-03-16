@@ -4,45 +4,38 @@ const Calculations = require('./calculations');
 const Parser = require('./parser');
 const END = require('./symbols').END;
 
+function flattenNode(node) {
+  switch (node.type) {
+  case 'grammar':
+    return node.rules.reduce((list, r) => list.concat(flattenNode(r)), []);
+  case 'rule':
+    let choice = flattenNode(node.choice);
+    if (choice.length > 0) {
+      return choice.map(c => [node.name].concat(c));
+    } else {
+      return [[node.name]];
+    }
+  case 'choice':
+    return node.alternatives.map(a => flattenNode(a));
+  case 'sequence':
+    return node.elements.reduce((list, e) => list.concat(flattenNode(e)), []);
+  case 'symbol':
+    return [node.name];
+  case 'epsilon':
+    return [];
+  }
+}
+
 class Grammar {
 
   static parse(spec) {
-
-    if (spec.match(/^\s*$/)) {
-      return { spec: spec };
-    }
-
     try {
-
-      // Parser gives us rules in the following form:
-      //
-      //   { nt: "A", p: [["a", "b"], []] }
-      //
-      // We want an array of productions in this form:
-      //
-      //   [["A", "a", "b"], ["A"]]
-      //
-      // Note that depending on the grammar specification, productions
-      // for a particular nonterminal may be at different places in the
-      // list. We want to preserve the order in the user's input.
-
-      let rules = Parser.parse(spec);
-      let productions = [];
-
-      for (let i = 0; i < rules.length; i++) {
-        for (let j = 0; j < rules[i].p.length; j++) {
-          productions.push([rules[i].nt].concat(rules[i].p[j]));
-        }
-      }
-
+      let result = Parser.parse(spec);
+      let productions = flattenNode(result);
       return { grammar: new Grammar(productions), spec: spec };
-
     } catch (e) {
-
       return { error: e, spec: spec };
-
     }
-
   }
 
   constructor(productions) {

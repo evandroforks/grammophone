@@ -2,7 +2,7 @@
   "scripts": {
     "test": "mocha \"test/**/*-test.js\"",
     "lint": "jshint --exclude ./node_modules,src/grammar/parser.js src",
-    "generate-parser": "jison src/grammar/parser.y src/grammar/parser.l --module-type=commonjs --outfile=src/grammar/parser.js",
+    "generate-parser": "pegjs -o src/grammar/parser.js src/grammar/parser.pegjs",
     "copy-vendor": "mkdir -p dist && cp node_modules/jquery/dist/jquery.slim.min.js dist/jquery.js && cp node_modules/viz.js/viz.js dist/viz.js",
     "bundle-src": "mkdir -p dist && browserify src/application.js -o dist/application.js --standalone ApplicationController --transform ejsify --transform [ babelify --ignore parser.js ]",
     "watch-src": "mkdir -p dist && watchify src/application.js -o dist/application.js --standalone ApplicationController --transform ejsify --transform [ babelify --ignore parser.js ]",
@@ -17,11 +17,11 @@
     "babelify": "^8.0.0",
     "browserify": "^16.1.1",
     "ejsify": "^1.0.0",
-    "jison": "^0.4.18",
     "jshint": "^2.9.5",
     "mocha": "^5.0.4",
     "node-sass": "^4.7.2",
     "npm-run-all": "^4.1.2",
+    "pegjs": "^0.10.0",
     "watchify": "^3.11.0"
   },
   "dependencies": {

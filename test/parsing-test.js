@@ -3,62 +3,121 @@
 const assert = require('assert');
 const Grammar = require('../src/grammar/index');
 
-function assertParseProductions(expected, spec) {
-  let parse = Grammar.parse(spec);
-  if (parse.error) {
-    throw parse.error;
+function assertProductions(expected, spec) {
+  let result = Grammar.parse(spec);
+  if (result.error) {
+    throw result.error;
   }
-  let actual = parse.grammar.productions;
-  
-  assert.deepEqual(expected, actual);
+  assert.deepEqual(expected, result.grammar.productions);
 }
 
 function assertParseError(spec) {
-  let parse = Grammar.parse(spec);
-  assert.ok(parse.error, `Expected parse error for spec: ${spec}`);
+  let result = Grammar.parse(spec);
+  assert.ok(result.error, 'Expected parse error');
 }
 
-describe('Parsing', function() {
-  it('should parse basic grammars', function() {
-    assertParseProductions([["A", "a"]], "A -> a .");
-    assertParseProductions([["A", "a"], ["A", "b"]], "A -> a | b .");
-    assertParseProductions([["A"]], "A -> .");
-    assertParseProductions([["A", "a"], ["B", "b"], ["A", "c"]], "A -> a. B -> b. A -> c.");
+describe('Parser', function() {
+  it('should parse simple grammars', function() {
+    assertProductions([['a', 'b']], 'a -> b');
+    assertProductions([['a', 'b', 'c']], 'a -> b c');
+    assertProductions([['a', 'b'], ['a', 'c']], 'a -> b | c');
+    assertProductions([['a', 'b'], ['c', 'd'], ['c', 'e']], 'a -> b\n c -> d | e');
   });
 
-  it('should parse variations in spacing', function() {
-    assertParseProductions([["A", "a"]], "A->a.");
-    assertParseProductions([["A", "a"], ["A", "b"]], "A->a|b.");
-    assertParseProductions([["A"]], "A->.");
+  it('should parse empty productions', function() {
+    assertProductions([['a'], ['b']], 'a -> b ->');
+    assertProductions([['a', 'b'], ['c']], 'a -> b c ->');
+    assertProductions([['a'], ['b', 'c']], 'a -> b -> c');
+    assertProductions([['a'], ['b'], ['c']], 'a -> b -> c ->');
+    assertProductions([['a', 'b'], ['c', 'd']], 'a -> b c -> d');
+    assertProductions([['a', 'b', 'c'], ['d', 'e']], 'a -> b c d -> e');
+    assertProductions([['a'], ['a']], 'a -> |');
+    assertProductions([['a', 'b'], ['a']], 'a -> b |');
+    assertProductions([['a'], ['a', 'b']], 'a -> | b');
+    assertProductions([['a'], ['a'], ['b']], 'a -> | b ->');
+    assertProductions([['a', 'b'], ['a'], ['c']], 'a -> b | c ->');
+    assertProductions([['a', 'b'], ['a', 'c'], ['d']], 'a -> b | c d ->');
   });
 
-  it('should accept certain non-letter characters as symbols', function() {
-    assertParseProductions([["A", "x", "-", ">", "y"]], "A -> x - > y.");
-    assertParseProductions([["A'", "a"], ["A''", "a"]], "A' -> a. A'' -> a.");
-    assertParseProductions([["A", "something-something"]], "A -> something-something.");
-    assertParseProductions([["-", "-"]], "-->-.");
-    assertParseProductions([["A", "1"], ["A", "2"], ["A", "3"]], "A -> 1 | 2 | 3.");
-    assertParseProductions([["A", "\"", "'"]], "A -> \" \'.");
-    assertParseProductions([["A", "\"a", "\""]], "A -> \"a \".");
+  it('should accept semicolon and period as rule separators', function() {
+    assertProductions([['a'], ['b']], 'a -> . b -> .');
+    assertProductions([['a'], ['b']], 'a -> ; b -> ;');
+    assertProductions([['a', 'b'], ['c', 'd']], 'a -> b; c -> d;');
   });
 
-  it('should parse multiple lines', function() {
-    assertParseProductions([["A", "a"], ["A", "b"]], "A -> a |\n  b\n  .");
+  it('should accept arrow and colon for defining a rule', function() {
+    assertProductions([['a', 'b'], ['c', 'd']], 'a -> b; c -> d');
+    assertProductions([['a', 'b'], ['c', 'd']], 'a : b; c : d');
   });
 
-  it('should ignore comments', function() {
-    assertParseProductions([["A", "b"]], "# A -> a .\nA -> b .");
-    assertParseProductions([["A", "b"]], "# abc\n\nA -> b .");
-    assertParseProductions([], "# 123\n\n");
+  it('should allow uppercase and lowercase letters and underscores in symbols', function() {
+    assertProductions([['A', '_b']], 'A -> _b');
   });
 
-  it('should correctly emit parse errors', function() {
-    assertParseError("A -> a. B");
-    assertParseError("A B -> a.");
-    assertParseError("A -> a. ->");
-    assertParseError("-> X");
-    assertParseError("A");
-    assertParseError("A.y -> a.");
-    assertParseError("A -> x.y .");
+  it('should allow dashes and numbers within symbols', function() {
+    assertProductions([['a-b', 'b1']], 'a-b -> b1');
+    assertProductions([['a', 'b']], 'a->b');
+  });
+
+  it('should allow non-ascii symbols', function() {
+    assertProductions([['A', 'α']], 'A -> α');
+    assertProductions([['🧀', '🥛'], ['🥛', '🐮']], '🧀 -> 🥛; 🥛 -> 🐮');
+    assertProductions([['hello', '你好'], ['hello', 'שלום'], ['hello', 'வணக்கம்'], ['hello', 'Γειά'], ['hello', 'привет']], 'hello -> 你好 | שלום | வணக்கம் | Γειά | привет');
+  });
+
+  it('should allow symbols to be written as strings', function() {
+    assertProductions([['a', '->']], `a -> "->"`);
+    assertProductions([['a', '->']], `a -> '->'`);
+    assertProductions([['a', '\'']], `a -> '\\''`);
+    assertProductions([['a', '\"']], `a -> "\\""`);
+  });
+
+  it('should parse rules containing end of line characters', function() {
+    assertProductions([['a', 'b'], ['a', 'c']], 'a -> b |\nc;');
+    assertProductions([['a', 'b'], ['a', 'c']], 'a ->\nb |\nc;');
+    assertProductions([['a', 'b'], ['a', 'c']], 'a\n->\nb\n|\nc;');
+  });
+
+  it('should parse the literal epsilon symbol', function() {
+    assertProductions([['a']], 'a -> #epsilon;');
+    assertProductions([['a', 'b']], 'a -> #epsilon b #epsilon;');
+  });
+
+  it('should parse empty expressions', function() {
+    assertProductions([['a'], ['b', 'c']], 'a -> ; b -> c;');
+    assertProductions([['a', 'b'], ['a']], 'a -> b | ;');
+    assertProductions([['a'], ['a', 'b']], 'a -> | b;');
+    assertProductions([['a'], ['a']], 'a -> | ;');
+  });
+
+  it('should parse end of line as the end of a rule', function() {
+    assertProductions([['a', 'b'], ['c', 'd']], 'a -> b\nc -> d');
+    assertProductions([['a', 'b'], ['c', 'd'], ['c', 'e']], 'a ->\nb\nc -> d |\ne');
+    assertProductions([['a'], ['a'], ['a', 'c', 'd'], ['e', 'f']], 'a -> |\n|\nc d\ne -> f');
+    assertProductions([['a'], ['c', 'd']], 'a -> #epsilon\nc -> d');
+    assertProductions([['a'], ['a'], ['c', 'd']], 'a -> | #epsilon\nc -> d');
+  });
+
+  it('should ignore single-line comments', function() {
+    assertProductions([['a', 'b']], '// a -> a\na -> b');
+    assertProductions([['a', 'b']], 'a -> b // 123');
+  });
+
+  it('should ignore multiple-line comments', function() {
+    assertProductions([['a', 'b']], '/* a -> a\na -> c*/a -> /* ? */\nb');
+  });
+
+  it('should parse an empty grammar', function() {
+    assertProductions([], '');
+    assertProductions([], '// empty\n');
+  });
+
+  it('should throw for parse errors', function() {
+    assertParseError('a -> b; c');
+    assertParseError('a b -> c');
+    assertParseError('-> a');
+    assertParseError('a');
+    assertParseError('a.y -> a.');
+    assertParseError('a -> b.z .');
   });
 });

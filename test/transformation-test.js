@@ -6,7 +6,7 @@ const Grammar = require('../src/grammar/index');
 describe('Transformations', function() {
   it('should expand nonterminals', function() {
     let transformations = new Grammar([["S", "a", "S", "b"], ["S"]]).calculate("transformations.expand");
-    
+
     assert.deepEqual([
       {
         name: "expand",

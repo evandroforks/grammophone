@@ -74,7 +74,7 @@ class ApplicationController {
     // set initial path and parse, and reload children
 
     this._path = "/";
-    this._parse = { spec: "# Type a grammar here:\n\n" };
+    this._parse = { spec: "// Type a grammar here:\n\n" };
     this._mode = "edit";
 
     this._analysisController.reload();
