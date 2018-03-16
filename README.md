@@ -26,6 +26,18 @@ To bundle the JavaScript and CSS and copy files to dist/ for distribution:
     yarn run generate-parser
 
 
+
+### To quickly build it
+
+
+To build it also on Windows, see: https://github.com/mdaines/grammophone/issues/3
+```
+yarn install &&
+yarn run dist &&
+yarn run generate-parser
+```
+
+
 Tests
 -----
 
